@@ -104,6 +104,17 @@ DetikDataSource.prototype = {
 	},
 	
 	/**
+	 * When we've reached the end of this polling run, update the stored contribution ID
+	 */
+	_updateLastContributionIdFromBatch: function() {
+		var self = this;
+		
+		if ( self._lastContributionId < self._highestBatchContributionId ) {
+			self._lastContributionId = self._highestBatchContributionId;
+		}
+	},
+	
+	/**
 	 * Fetch one page of results
 	 * Call the callback function on the results
 	 * Recurse and call self to fetch the next page of results if required
@@ -132,6 +143,7 @@ DetikDataSource.prototype = {
 		    	responseObject = JSON.parse( response );
 		    } catch (e) {
 		    	self.logger.error( "DetikDataSource > poll > fetchResults: Error parsing JSON: " + response );
+		    	self._updateLastContributionIdFromBatch();
 		    	return;
 		    }
 		    
@@ -140,6 +152,7 @@ DetikDataSource.prototype = {
 			if ( !responseObject || !responseObject.result || responseObject.result.length === 0 ) {
 				// If page has a problem or 0 objects, end
 				self.logger.error( "DetikDataSource > poll > fetchResults: No results found on page " + page );
+				self._updateLastContributionIdFromBatch();
 				return;
 			} else {
 				// Run data processing callback on the result objects
@@ -154,6 +167,7 @@ DetikDataSource.prototype = {
 		
 		req.on('error', function(error) {
 			self.logger.error( "DetikDataSource > poll > fetchResults: Error fetching page " + page + ", " + error.message + ", " + error.stack );
+			self._updateLastContributionIdFromBatch();
 		});
 		
 		req.end();
@@ -196,13 +210,10 @@ DetikDataSource.prototype = {
 			result = results.shift();
 		}
 		
-		// If we've reached the end of this polling run, update the stored contribution ID
-		if ( !continueProcessing ) {
-			if ( self._lastContributionId < self._highestBatchContributionId ) {
-				self._lastContributionId = self._highestBatchContributionId;
-			}
+		if (!continueProcessing) {
+			self._updateLastContributionIdFromBatch();
 		}
-		
+				
 		return continueProcessing;
 	},
 	

@@ -149,6 +149,7 @@ describe( 'DetikDataSource', function() {
 	describe( "_fetchResults", function() {		
 		var oldHttps;
 		var oldFilterResults;
+		var oldUpdateLastContributionIdFromBatch;
 		
 		var dataCallback;
 		var endCallback;
@@ -159,6 +160,7 @@ describe( 'DetikDataSource', function() {
 		var filterResultsCalled;
 		var filterResultsReturnTrueOnce;
 		var generateRequestError;
+		var updateLastContributionIdFromBatchCalled;
 		
 		before( function() {	
 			oldHttps = detikDataSource.https;			
@@ -200,30 +202,39 @@ describe( 'DetikDataSource', function() {
 					return false;
 				}
 			};
+			
+			oldUpdateLastContributionIdFromBatch = detikDataSource._updateLastContributionIdFromBatch;
+			detikDataSource._updateLastContributionIdFromBatch = function(){
+				updateLastContributionIdFromBatchCalled = true;
+			};
 		});
 		
 		beforeEach( function() {
 			filterResultsCalled = 0;
 			filterResultsReturnTrueOnce = false;
 			generateRequestError = false;
+			updateLastContributionIdFromBatchCalled = false;
 		});
 		
 		it( 'No results returned stops processing', function() {
 			httpsData = '{"result":[]}';
 			detikDataSource._fetchResults();
 			test.value( filterResultsCalled ).is( 0 );
+			test.value( updateLastContributionIdFromBatchCalled ).is( true );
 		});
 
 		it( 'Invalid result object returned stops processing', function() {
 			httpsData = '{invalid-json}';
 			detikDataSource._fetchResults();
 			test.value( filterResultsCalled ).is( 0 );
+			test.value( updateLastContributionIdFromBatchCalled ).is( true );
 		});
 
 		it( 'Valid result calls _filterResults', function() {
 			httpsData = '{"result":[{}]}';
 			detikDataSource._fetchResults();
 			test.value( filterResultsCalled ).is( 1 );
+			test.value( updateLastContributionIdFromBatchCalled ).is( false );
 		});
 
 		it( 'Request error stops processing', function() {
@@ -231,6 +242,8 @@ describe( 'DetikDataSource', function() {
 			generateRequestError = true;
 			detikDataSource._fetchResults();
 			test.value( filterResultsCalled ).is( 0 );
+			test.value( updateLastContributionIdFromBatchCalled ).is( true );
+
 		});
 
 		it( 'Multiple pages recurses', function() {
@@ -238,17 +251,121 @@ describe( 'DetikDataSource', function() {
 			filterResultsReturnTrueOnce = true;
 			detikDataSource._fetchResults();
 			test.value( filterResultsCalled ).is( 2 );
+			test.value( updateLastContributionIdFromBatchCalled ).is( false );
 		});
 
 		// Restore/erase mocked functions
 		after( function(){
 			detikDataSource.https = oldHttps;
 			detikDataSource._filterResults = oldFilterResults;
+			detikDataSource._updateLastContributionIdFromBatch = oldUpdateLastContributionIdFromBatch;
 		});
 		
 	});
 	
-	// TODO _filterResults
+	describe( "_filterResults", function() {		
+		var processedResults = [];
+		
+		function generateResult( contributionId, date ) {
+			return {
+				contributionId: contributionId,
+				date: {
+					update: {
+						sec: date / 1000
+					}
+				}
+			};
+		}
+		
+		before( function() {
+			detikDataSource._processResult = function(result){
+				processedResults.push(result);
+			};
+		});
+		
+		beforeEach( function() {
+			processedResults = [];
+			detikDataSource.config.detik.historicalLoadPeriod = new Date().getTime() + 60000;
+			detikDataSource._lastContributionId = 0;
+		});
+		
+		it( 'New result is processed', function() {
+			var results = [];
+			test.value( processedResults.length ).is( 0 );
+			results.push( generateResult(1,1) );
+			detikDataSource._filterResults(results);
+			test.value( processedResults.length ).is( 1 );
+		});
+
+		it( 'Already processed result is not processed', function() {
+			var results = [];
+			results.push( generateResult(1,1) );
+			detikDataSource._filterResults(results);
+			detikDataSource._filterResults(results);
+			test.value( processedResults.length ).is( 1 );
+		});
+
+		it( 'Result older than cutoff is not processed', function() {
+			detikDataSource.config.detik.historicalLoadPeriod = 0;
+			var results = [];
+			results.push( generateResult(1,1) );
+			detikDataSource._filterResults(results);
+			test.value( processedResults.length ).is( 0 );
+		});
+
+		it( 'Last processed ID is updated from one batch', function() {
+			detikDataSource.config.detik.historicalLoadPeriod = 60000;
+			var results = [];
+			results.push( generateResult(1,new Date().getTime()) );
+			results.push( generateResult(2,new Date().getTime()-120000) );
+			test.value( detikDataSource._lastContributionId ).is( 0 );
+			detikDataSource._filterResults(results);
+			test.value( detikDataSource._lastContributionId ).is( 1 );
+		});
+
+		it( 'Last processed ID is not updated from one batch with no filtered result', function() {
+			detikDataSource.config.detik.historicalLoadPeriod = 60000;
+			var results = [];
+			results.push( generateResult(1,new Date().getTime()) );
+			results.push( generateResult(2,new Date().getTime()) );
+			detikDataSource._filterResults(results);
+			test.value( detikDataSource._lastContributionId ).is( 0 );
+		});
+
+		it( 'Last processed ID is updated during last batch of two', function() {
+			detikDataSource.config.detik.historicalLoadPeriod = 60000;
+			var results = [];
+			results.push( generateResult(1,new Date().getTime()) );
+			results.push( generateResult(2,new Date().getTime()) );
+			detikDataSource._filterResults(results);
+			test.value( detikDataSource._lastContributionId ).is( 0 );
+			results = [];
+			results.push( generateResult(3,new Date().getTime()) );
+			results.push( generateResult(4,new Date().getTime()-120000) );
+			detikDataSource._filterResults(results);
+			test.value( detikDataSource._lastContributionId ).is( 3 );
+		});
+
+		it( 'Last processed ID is not updated during last batch of two with no filtered result', function() {
+			detikDataSource.config.detik.historicalLoadPeriod = 60000;
+			var results = [];
+			results.push( generateResult(1,new Date().getTime()) );
+			results.push( generateResult(2,new Date().getTime()) );
+			detikDataSource._filterResults(results);
+			test.value( detikDataSource._lastContributionId ).is( 0 );
+			results = [];
+			results.push( generateResult(3,new Date().getTime()) );
+			results.push( generateResult(4,new Date().getTime()) );
+			detikDataSource._filterResults(results);
+			test.value( detikDataSource._lastContributionId ).is( 0 );
+		});
+
+		// Restore/erase mocked functions
+		after( function(){
+			detikDataSource.config.detik = {};
+		});
+		
+	});
 	
 // Test template
 //	describe( "suite", function() {
