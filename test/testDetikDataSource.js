@@ -61,39 +61,39 @@ describe( 'DetikDataSource', function() {
 		});
 		
 		it( 'Realtime processing is enabled by default', function() {
-			detikDataSource._process('result');
+			detikDataSource._processResult('result');
 			test.value( detikDataSource._cachedData.length ).is( 0 );
 		});
 
 		it( 'Enabling caching mode stops realtime filtering and retains tweets', function() {
 			detikDataSource.enableCacheMode(); // Start cache mode
-			detikDataSource._process('result');
+			detikDataSource._processResult('result');
 			test.value( detikDataSource._cachedData.length ).is( 1 );
 		});
 		
 		it( 'Disabling caching mode reenables realtime filtering', function() {
 			detikDataSource.enableCacheMode(); // Start cache mode
 			detikDataSource.disableCacheMode(); // Stop cache mode
-			detikDataSource._process('result');
+			detikDataSource._processResult('result');
 			test.value( detikDataSource._cachedData.length ).is( 0 );
 		});
 
 		it( 'Cached tweets are processed when caching mode is disabled', function() {
 			detikDataSource.enableCacheMode(); // Start cache mode
-			detikDataSource._process('result');
+			detikDataSource._processResult('result');
 			test.value( detikDataSource._cachedData.length ).is( 1 );
 			detikDataSource.disableCacheMode(); // Stop cache mode
 			test.value( detikDataSource._cachedData.length ).is( 0 );
 		});
 
 		it( 'Multiple tweet handling', function() {
-			detikDataSource._process('result');
-			detikDataSource._process('result');
+			detikDataSource._processResult('result');
+			detikDataSource._processResult('result');
 			test.value( detikDataSource._cachedData.length ).is( 0 );
 			detikDataSource.enableCacheMode(); // Start cache mode
-			detikDataSource._process('result');
-			detikDataSource._process('result');
-			detikDataSource._process('result');
+			detikDataSource._processResult('result');
+			detikDataSource._processResult('result');
+			detikDataSource._processResult('result');
 			test.value( detikDataSource._cachedData.length ).is( 3 );
 			detikDataSource.disableCacheMode(); // Stop cache mode
 			test.value( detikDataSource._cachedData.length ).is( 0 );
@@ -145,6 +145,110 @@ describe( 'DetikDataSource', function() {
 		});
 		
 	});
+	
+	describe( "_fetchResults", function() {		
+		var oldHttps;
+		var oldFilterResults;
+		
+		var dataCallback;
+		var endCallback;
+		var errorCallback;
+		
+		var httpsData;
+		
+		var filterResultsCalled;
+		var filterResultsReturnTrueOnce;
+		var generateRequestError;
+		
+		before( function() {	
+			oldHttps = detikDataSource.https;			
+			detikDataSource.https = {
+				request: function(url, callback){
+					var res = {
+						setEncoding: function(){},
+						on: function(event, callback) {
+							if (event==='data') dataCallback = callback;
+							if (event==='end') endCallback = callback;
+						}
+					};
+					callback(res);
+															
+					var req = {
+						on: function(event, callback) {
+							if (event==='error') errorCallback = callback;
+						},
+						end: function() {
+							if (generateRequestError) {
+								errorCallback({message:'foo',stack:'bar'});
+							} else {
+								dataCallback(httpsData);
+								endCallback();	
+							}		
+						}
+					};
+					return req;
+				}
+			};
+			
+			oldFilterResults = detikDataSource._filterResults;
+			detikDataSource._filterResults = function(){
+				filterResultsCalled++;	
+				if (filterResultsReturnTrueOnce) {
+					filterResultsReturnTrueOnce = false;
+					return true;
+				} else {
+					return false;
+				}
+			};
+		});
+		
+		beforeEach( function() {
+			filterResultsCalled = 0;
+			filterResultsReturnTrueOnce = false;
+			generateRequestError = false;
+		});
+		
+		it( 'No results returned stops processing', function() {
+			httpsData = '{"result":[]}';
+			detikDataSource._fetchResults();
+			test.value( filterResultsCalled ).is( 0 );
+		});
+
+		it( 'Invalid result object returned stops processing', function() {
+			httpsData = '{invalid-json}';
+			detikDataSource._fetchResults();
+			test.value( filterResultsCalled ).is( 0 );
+		});
+
+		it( 'Valid result calls _filterResults', function() {
+			httpsData = '{"result":[{}]}';
+			detikDataSource._fetchResults();
+			test.value( filterResultsCalled ).is( 1 );
+		});
+
+		it( 'Request error stops processing', function() {
+			httpsData = '{"result":[{}]}';
+			generateRequestError = true;
+			detikDataSource._fetchResults();
+			test.value( filterResultsCalled ).is( 0 );
+		});
+
+		it( 'Multiple pages recurses', function() {
+			httpsData = '{"result":[{}]}';
+			filterResultsReturnTrueOnce = true;
+			detikDataSource._fetchResults();
+			test.value( filterResultsCalled ).is( 2 );
+		});
+
+		// Restore/erase mocked functions
+		after( function(){
+			detikDataSource.https = oldHttps;
+			detikDataSource._filterResults = oldFilterResults;
+		});
+		
+	});
+	
+	// TODO _filterResults
 	
 // Test template
 //	describe( "suite", function() {

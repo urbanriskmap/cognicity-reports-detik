@@ -1,7 +1,5 @@
 'use strict';
 
-var https = require('https');
-
 /**
  * The Detik data source.
  * Poll the specified Detik feed for new data and send it to the reports application.
@@ -26,6 +24,8 @@ var DetikDataSource = function DetikDataSource(
 		}
 	}
 	
+	this.https = require('https');
+	
 	// Set constructor reference (used to print the name of this data source)
 	this.constructor = DetikDataSource;
 };
@@ -49,7 +49,12 @@ DetikDataSource.prototype = {
 	 * Instance of the Winston logger.
 	 */
 	logger: null,
-	
+
+	/**
+	 * Instance of node https.
+	 */
+	https: null,
+
 	/**
 	 * Flag signifying if we are currently able to process incoming data immediately.
 	 * Turned on if the database is temporarily offline so we can cache for a short time.
@@ -64,11 +69,17 @@ DetikDataSource.prototype = {
 	_cachedData: [],
 	
 	/**
-	 * Last contribution ID from Detik result that was proccessed.
+	 * Last contribution ID from Detik result that was processed.
 	 * Used to ensure we don't process the same result twice.
 	 * @type {number}
 	 */
 	_lastContributionId: 0,
+	
+	/**
+	 * Highest contribution ID from current batch of Detik results.
+	 * @type {number}
+	 */
+	_highestBatchContributionId: 0,
 	
 	/**
 	 * Reference to the polling interval.
@@ -86,104 +97,113 @@ DetikDataSource.prototype = {
 				
 		// Keep track of the newest contribution ID we get in this poll.
 		// We want to update our 'latest contribution ID' after we finish this whole batch.
-		var newestContributionId = self._lastContributionId;
-		
-		/**
-		 * Fetch one page of results
-		 * Call the callback function on the results
-		 * Recurse and call self to fetch the next page of results if required
-		 * @param {Function} callback Callback function to pass result objects to
-		 * @param {number} page Page number of results to fetch, defaults to 1
-		 */ 
-		function fetchResults( callback, page ) {
-			if (!page) page = 1;
-			
-			self.logger.verbose( 'DetikDataSource > poll > fetchResults: Loading page ' + page );
-			
-			var requestURL = self.config.detik.serviceURL + "&page=" + page;
-			var response = "";
-			
-			var req = https.request( requestURL , function(res) {
-			  res.setEncoding('utf8');
-			  
-			  res.on('data', function (chunk) {
-			    response += chunk;
-			  });
-			  
-			  res.on('end', function() {
-			    var responseObject = JSON.parse( response );
-			    
-			    self.logger.debug('DetikDataSource > poll > fetchResults: Page ' + page + " fetched, " + response.length + " bytes");
-			    
-				if ( !responseObject || !responseObject.result || responseObject.result.length === 0 ) {
-					// If page has a problem or 0 objects, end
-					self.logger.error( "DetikDataSource > poll > fetchResults: No results found on page " + page );
-					return;
-				} else {
-					// Run data processing callback on the result objects
-					if ( callback( responseObject.result ) ) {
-						// If callback returned true, processing should continue on next page
-						page++;
-						fetchResults( callback, page );
-					}
-				}
-			  });
-			});
-			
-			req.on('error', function(error) {
-				self.logger.error( "DetikDataSource > poll > fetchResults: Error fetching page " + page + ", " + error.message + ", " + error.stack );
-			});
-			
-			req.end();
-		}
-		
-		/**
-		 * Process the passed result objects
-		 * Stop processing if we've seen a result before, or if the result is too old
-		 * @param {Array} results Array of result objects from the Detik data to process
-		 * @return {boolean} True if we should continue to process more pages of results
-		 */ 
-		function processResults( results ) {
-			var continueProcessing = true;
-			
-			// For each result:
-			var result = results.shift();
-			while( result ) {
-				if ( result.contributionId <= self._lastContributionId ) {
-					// We've seen this result before, stop processing
-					self.logger.debug( "DetikDataSource > poll > processResults: Found already processed result with contribution ID " + result.contributionId );
-					continueProcessing = false;
-					break;
-				} else if ( result.date.update.sec * 1000 < new Date().getTime() - self.config.detik.historicalLoadPeriod ) {
-					// This result is older than our cutoff, stop processing
-					// TODO What date to use? transform to readable. timezone
-					self.logger.debug( "DetikDataSource > poll > processResults: Result older than maximum configured age of " + self.config.detik.historicalLoadPeriod / 1000 + " seconds" );
-					continueProcessing = false;
-					break;
-				} else {
-					// Process this result
-					self.logger.verbose( "DetikDataSource > poll > processResults: Processing result " + result.contributionId );
-					// Retain the contribution ID
-					if ( newestContributionId < result.contributionId ) {
-						newestContributionId = result.contributionId;
-					}
-					self._process( result );
-				}
-				result = results.shift();
-			}
-			
-			// If we've reached the end of this polling run, update the stored contribution ID
-			if ( !continueProcessing ) {
-				if ( self._lastContributionId < newestContributionId ) {
-					self._lastContributionId = newestContributionId;
-				}
-			}
-			
-			return continueProcessing;
-		}
+		self._highestBatchContributionId = self._lastContributionId;
 		
 		// Begin processing results from page 1 of data
-		fetchResults( processResults );
+		self._fetchResults();
+	},
+	
+	/**
+	 * Fetch one page of results
+	 * Call the callback function on the results
+	 * Recurse and call self to fetch the next page of results if required
+	 * @param {number} page Page number of results to fetch, defaults to 1
+	 */ 
+	_fetchResults: function( page ) {
+		var self = this;
+		
+		if (!page) page = 1;
+		
+		self.logger.verbose( 'DetikDataSource > poll > fetchResults: Loading page ' + page );
+		
+		var requestURL = self.config.detik.serviceURL + "&page=" + page;
+		var response = "";
+		
+		var req = self.https.request( requestURL , function(res) {
+		  res.setEncoding('utf8');
+		  
+		  res.on('data', function (chunk) {
+		    response += chunk;
+		  });
+		  
+		  res.on('end', function() {
+		    var responseObject;
+		    try {
+		    	responseObject = JSON.parse( response );
+		    } catch (e) {
+		    	self.logger.error( "DetikDataSource > poll > fetchResults: Error parsing JSON: " + response );
+		    	return;
+		    }
+		    
+		    self.logger.debug('DetikDataSource > poll > fetchResults: Page ' + page + " fetched, " + response.length + " bytes");
+		    
+			if ( !responseObject || !responseObject.result || responseObject.result.length === 0 ) {
+				// If page has a problem or 0 objects, end
+				self.logger.error( "DetikDataSource > poll > fetchResults: No results found on page " + page );
+				return;
+			} else {
+				// Run data processing callback on the result objects
+				if ( self._filterResults( responseObject.result ) ) {
+					// If callback returned true, processing should continue on next page
+					page++;
+					self._fetchResults( page );
+				}
+			}
+		  });
+		});
+		
+		req.on('error', function(error) {
+			self.logger.error( "DetikDataSource > poll > fetchResults: Error fetching page " + page + ", " + error.message + ", " + error.stack );
+		});
+		
+		req.end();
+	},
+	
+	/**
+	 * Process the passed result objects
+	 * Stop processing if we've seen a result before, or if the result is too old
+	 * @param {Array} results Array of result objects from the Detik data to process
+	 * @return {boolean} True if we should continue to process more pages of results
+	 */ 
+	_filterResults: function( results ) {
+		var self = this;
+		
+		var continueProcessing = true;
+		
+		// For each result:
+		var result = results.shift();
+		while( result ) {
+			if ( result.contributionId <= self._lastContributionId ) {
+				// We've seen this result before, stop processing
+				self.logger.debug( "DetikDataSource > poll > processResults: Found already processed result with contribution ID " + result.contributionId );
+				continueProcessing = false;
+				break;
+			} else if ( result.date.update.sec * 1000 < new Date().getTime() - self.config.detik.historicalLoadPeriod ) {
+				// This result is older than our cutoff, stop processing
+				// TODO What date to use? transform to readable. timezone
+				self.logger.debug( "DetikDataSource > poll > processResults: Result " + result.contributionId + " older than maximum configured age of " + self.config.detik.historicalLoadPeriod / 1000 + " seconds" );
+				continueProcessing = false;
+				break;
+			} else {
+				// Process this result
+				self.logger.verbose( "DetikDataSource > poll > processResults: Processing result " + result.contributionId );
+				// Retain the contribution ID
+				if ( self._highestBatchContributionId < result.contributionId ) {
+					self._highestBatchContributionId = result.contributionId;
+				}
+				self._processResult( result );
+			}
+			result = results.shift();
+		}
+		
+		// If we've reached the end of this polling run, update the stored contribution ID
+		if ( !continueProcessing ) {
+			if ( self._lastContributionId < self._highestBatchContributionId ) {
+				self._lastContributionId = self._highestBatchContributionId;
+			}
+		}
+		
+		return continueProcessing;
 	},
 	
 	/**
@@ -191,7 +211,7 @@ DetikDataSource.prototype = {
 	 * This method is called for each new result we fetch from the web service.
 	 * @param {object} result The result object from the web service
 	 */
-	_process: function( result ) {
+	_processResult: function( result ) {
 		var self = this;
 		
 		if ( self._cacheMode ) {
@@ -258,7 +278,7 @@ DetikDataSource.prototype = {
 		
 		self.logger.verbose( 'DetikDataSource > disableCacheMode: Processing ' + self._cachedData.length + ' cached results' );
 		self._cachedData.forEach( function(data) {
-			self._process(data);
+			self._processResult(data);
 		});
 		self.logger.verbose( 'DetikDataSource > disableCacheMode: Cached results processed' );
 		self._cachedData = [];
