@@ -230,7 +230,7 @@ DetikDataSource.prototype = {
 			self._cachedData.push( result );
 		} else {
 			// Process result now
-			self._saveResult();
+			self._saveResult(result);
 		}
 	},
 
@@ -241,9 +241,9 @@ DetikDataSource.prototype = {
 	_saveResult: function( result ) {
 		 var self = this;
 
-		 // Detik doesn't allow users from the Gulf of Guinea (indicates no geo)
+		 // Detik doesn't allow users from the Gulf of Guinea (indicates no geo available)
 		 if (result.location.geospatial.longitude !== 0 && result.location.geospatial.latitude !== 0){
-			 self._insertConfirmed(result)
+			 self._insertConfirmed(result);
 		 }
 	},
 
