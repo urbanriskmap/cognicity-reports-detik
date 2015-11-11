@@ -18,4 +18,8 @@ config.detik.serviceURL = "https://example.com/latest?topic=2"; // E.g. https://
 config.detik.pollInterval = 1000 * 60 * 5; // E.g. 1000 * 60 * 5 = 5min
 config.detik.historicalLoadPeriod = 1000 * 60 * 60; // E.g. 1000 * 60 * 60 = 1hr
 
+// Detik configuration for cognicity-schema
+config.detik.pg.table_detik = 'detik_reports';
+config.detik.pg.table_detik_users = 'detik_users';
+
 module.exports = config;
