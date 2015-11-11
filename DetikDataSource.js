@@ -239,8 +239,12 @@ DetikDataSource.prototype = {
 	 * @param {object} result The result object from the web service
 	 */
 	_saveResult: function( result ) {
-		// var self = this;
-		// TODO Send result to cognicity server
+		 var self = this;
+
+		 // Detik doesn't allow users from the Gulf of Guinea (indicates no geo)
+		 if (result.location.geospatial.longitude !== 0 && result.location.geospatial.latitude !== 0){
+			 self._insertConfirmed(result)
+		 }
 	},
 
 	/**
@@ -248,7 +252,7 @@ DetikDataSource.prototype = {
 	* Store both the detik report and the user hash
 	* @param {detikReport} detikReport Detik report object
 	*/
-	_insertConfirmed: function(detikReport) {
+	_insertConfirmed: function( detikReport ) {
 		var self = this;
 
 		// Check for photo URL and fix escaping slashes
@@ -289,7 +293,7 @@ DetikDataSource.prototype = {
 					detikReport.location.geospatial.longitude + " " + detikReport.location.geospatial.latitude
 				]
 			},
-			function (result) {
+			function ( result ) {
 				self.logger.info('Logged confirmed detik report');
 				self.reports.dbQuery(
 					{
@@ -298,7 +302,7 @@ DetikDataSource.prototype = {
 							detikReport.user.creator.id
 						]
 					},
-					function (result) {
+					function ( result ) {
 						self.logger.info('Logged confirmed detik user');
 					}
 				);
