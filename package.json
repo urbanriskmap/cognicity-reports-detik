@@ -10,7 +10,7 @@
   },
   "devDependencies": {
     "jsdoc": "^3.2.0",
-    "jshint": "^2.5.8",
+    "jshint": "^2.8.0",
     "mocha": "^2.0.1",
     "unit.js": "^1.0.2",
     "istanbul": "^0.3.5"
