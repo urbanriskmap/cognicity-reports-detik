@@ -127,6 +127,7 @@ describe( 'DetikDataSource', function() {
 				pollCalledTimes++;
 			};
 			/* jshint -W020 */ // We want to mock out a global function here
+			/* global setInterval */
 			setInterval = function( callback, delay ) {
 				if (testInterval) callback();
 			};
