@@ -22,6 +22,7 @@ ALTER FUNCTION public.update_all_reports_from_detik()
 CREATE TABLE detik_reports
 (
   pkey bigserial NOT NULL,
+  contribution_id bigint NOT NULL,
   database_time timestamp with time zone DEFAULT now(),
   created_at timestamp with time zone,
   text character varying,
