@@ -116,10 +116,13 @@ describe( 'DetikDataSource', function() {
 		var pollCalledTimes;
 		var oldSetInterval;
 		var testInterval;
+		var oldUpdateLastContributionIdFromDatabase;
 
 		before( function() {
 			oldPoll = detikDataSource._poll;
 			oldSetInterval = setInterval;
+			oldUpdateLastContributionIdFromDatabase = detikDataSource._updateLastContributionIdFromDatabase;
+			detikDataSource._updateLastContributionIdFromDatabase = function(){};
 			detikDataSource._poll = function() {
 				pollCalledTimes++;
 			};
