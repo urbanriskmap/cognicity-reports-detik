@@ -312,6 +312,10 @@ DetikDataSource.prototype = {
 		);
 	},
 
+	/**
+	* Get the last contribution ID as stored in the database
+	* Update _lastContributionId
+	*/
 	_updateLastContributionIdFromDatabase: function() {
 		var self = this;
 
