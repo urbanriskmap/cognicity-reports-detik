@@ -273,17 +273,19 @@ DetikDataSource.prototype = {
 		self.reports.dbQuery(
 			{
 				text: "INSERT INTO " + self.config.detik.pg.table_detik + " " +
-					"(created_at, text, lang, url, image_url, title, the_geom) " +
+					"(contribution_id, created_at, text, lang, url, image_url, title, the_geom) " +
 					"VALUES (" +
-					"to_timestamp($1), " +
-					"$2, " +
+					"$1, " +
+					"to_timestamp($2), " +
 					"$3, " +
 					"$4, " +
 					"$5, " +
 					"$6, " +
-					"ST_GeomFromText('POINT(' || $7 || ')',4326)" +
+					"$7, " +
+					"ST_GeomFromText('POINT(' || $8 || ')',4326)" +
 					");",
 				values : [
+					detikReport.contributionId,
 					detikReport.date.create.sec,
 					detikReport.content,
 					detikReport.lang,
@@ -310,6 +312,26 @@ DetikDataSource.prototype = {
 		);
 	},
 
+	_updateLastContributionIdFromDatabase: function() {
+		var self = this;
+
+		self.reports.dbQuery(
+			{
+				text: "SELECT contribution_id FROM " + self.config.detik.pg.table_detik + " " +
+				"ORDER BY contribution_id DESC LIMIT 1;"
+			},
+			function ( result ) {
+				if (result && result.rows && result.rows[0]){
+					self.logger.info('Set last contribution ID from database');
+					self._lastContributionId = result.rows[0].contribution_id;
+				}
+				else {
+					self.logger.info('Error setting last contribution ID from database (is the reports table empty?)');
+				}
+			}
+		);
+	},
+
 	/**
 	 * Connect the Gnip stream.
 	 * Establish the network connection, push rules to Gnip.
@@ -318,6 +340,9 @@ DetikDataSource.prototype = {
 	 */
 	start: function(){
 		var self = this;
+
+		// Initiate by getting last report ID from database
+		self._updateLastContributionIdFromDatabase();
 
 		// Called on interval to poll data source
 		var poll = function(){
