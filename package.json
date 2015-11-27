@@ -5,9 +5,7 @@
   "author": "Tomas Holderness <tomas@uow.edu.au>",
   "preferGlobal": false,
   "private": true,
-  "dependencies": {
-    "gnip": "^0.2.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "jsdoc": "^3.2.0",
     "jshint": "2.5.8",
