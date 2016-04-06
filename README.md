@@ -46,6 +46,8 @@ App configuration parameters are stored in a configuration file which is parsed 
 * serviceURL - URL to the Detik service API, including topic number. E.g. https://example.com/latest?topic=2
 * pollInterval - How long to wait between checking the URL for new articles, in milliseconds. E.g. 1000 * 60 * 5 = 5min
 * historicalLoadPeriod - How old an article can be and still be processed, in milliseconds. E.g. 1000 * 60 * 60 = 1hr
+* pg.table_detik - Database table used to store Detik reports
+* pg.table_detik_users - Database tables used to store Detik report counts per user
 
 ### Development
 

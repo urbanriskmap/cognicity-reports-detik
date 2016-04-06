@@ -11,7 +11,7 @@
  * @property {number} detik.historicalLoadPeriod Maximum age in milliseconds of reports which will be processed
  * @property {object} detik.pg Postgres database configuration options
  * @property {string} detik.pg.table_detik Database table used to store Detik reports
- * @property {string} detik.pg.table_detik_users Database table used to store Detik users
+ * @property {string} detik.pg.table_detik_users Database table used to store Detik counts per user
  */
 var config = {};
 
