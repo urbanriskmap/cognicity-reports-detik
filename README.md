@@ -17,7 +17,7 @@ This module is not designed to be run standalone but is designed to be run as a 
 * [NodeJS](http://nodejs.org) version 0.10.16 or compatible
 
 #### Dev Modules
-* [jshint](https://github.com/jshint/node-jshint) version 2.5.8 or compatible
+* [jshint](https://github.com/jshint/node-jshint) version 2.8.0 or compatible
 * [unit.js](http://unitjs.com/) version 1.0.2 or compatible
 * [mocha](http://mochajs.org/) version 2.0.1 or compatible
 * [jsdoc](https://github.com/jsdoc3/jsdoc) version 3.2.0 or compatible
@@ -45,7 +45,7 @@ App configuration parameters are stored in a configuration file which is parsed 
 #### Detik parameters
 * serviceURL - URL to the Detik service API, including topic number. E.g. https://example.com/latest?topic=2
 * pollInterval - How long to wait between checking the URL for new articles, in milliseconds. E.g. 1000 * 60 * 5 = 5min
-* historicalLoadPeriod - How old an article can be and still be processed. E.g. 1000 * 60 * 60 = 1hr
+* historicalLoadPeriod - How old an article can be and still be processed, in milliseconds. E.g. 1000 * 60 * 60 = 1hr
 
 ### Development
 

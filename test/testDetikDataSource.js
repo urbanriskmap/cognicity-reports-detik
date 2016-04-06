@@ -68,7 +68,7 @@ describe( 'DetikDataSource', function() {
 			test.value( detikDataSource._cachedData.length ).is( 0 );
 		});
 
-		it( 'Cached tweets are processed when caching mode is disabled', function() {
+		it( 'Cached results are processed when caching mode is disabled', function() {
 			detikDataSource.enableCacheMode(); // Start cache mode
 			detikDataSource._processResult(result);
 			test.value( detikDataSource._cachedData.length ).is( 1 );
@@ -76,7 +76,7 @@ describe( 'DetikDataSource', function() {
 			test.value( detikDataSource._cachedData.length ).is( 0 );
 		});
 
-		it( 'Multiple tweet handling', function() {
+		it( 'Multiple result handling', function() {
 			detikDataSource._processResult(result);
 			detikDataSource._processResult(result);
 			test.value( detikDataSource._cachedData.length ).is( 0 );

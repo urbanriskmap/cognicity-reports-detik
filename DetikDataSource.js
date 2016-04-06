@@ -4,8 +4,8 @@
  * The Detik data source.
  * Poll the specified Detik feed for new data and send it to the reports application.
  * @constructor
- * @param {Reports} reports An instance of the reports object.
- * @param {object} config Gnip powertrack specific configuration.
+ * @param {Reports} reports An instance of the cognicity-reports reports object.
+ * @param {object} config Detik configuration.
  */
 var DetikDataSource = function DetikDataSource(
 		reports,
@@ -33,7 +33,7 @@ DetikDataSource.prototype = {
 	config: {},
 
 	/**
-	 * Instance of the reports module that the data source uses to interact with Cognicity Server.
+	 * Instance of the cognicity-reports reports module that the data source uses to interact with Cognicity Server.
 	 * @type {Reports}
 	 */
 	reports: null,
@@ -241,10 +241,10 @@ DetikDataSource.prototype = {
 	},
 
 	/**
-	* Insert a confirmed report - i.e. has geo coordinates
-	* Store both the detik report and the user hash
-	* @param {detikReport} detikReport Detik report object
-	*/
+	 * Insert a confirmed report - i.e. has geo coordinates
+	 * Store both the detik report and the user hash
+	 * @param {detikReport} detikReport Detik report object
+	 */
 	_insertConfirmed: function( detikReport ) {
 		var self = this;
 
@@ -330,10 +330,8 @@ DetikDataSource.prototype = {
 	},
 
 	/**
-	 * Connect the Gnip stream.
-	 * Establish the network connection, push rules to Gnip.
-	 * Setup error handlers and timeout handler.
-	 * Handle events from the stream on incoming data.
+	 * Start fetching Detik reports.
+	 * Setup polling and start fetching reports from the Detik feed.
 	 */
 	start: function(){
 		var self = this;

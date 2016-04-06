@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * @file Cognicity reports data module which retrieves tweet data from Gnip Powertrack
+ * @file Cognicity reports data module which retrieves data from Detik
  * @copyright (c) Tomas Holderness & SMART Infrastructure Facility January 2014
  * @license Released under GNU GPLv3 License (see LICENSE.txt).
  * @example
