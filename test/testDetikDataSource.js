@@ -340,6 +340,10 @@ describe( 'DetikDataSource', function() {
 			test.value( detikDataSource._lastContributionId ).is( 3 );
 		});
 
+		// Last contribution ID is only updated when our batch of pages is finished
+		// - so either by filterResults() stopping processing, or
+		// - or by fetchResults() getting to the end of the batch
+		// This case - all successes in filterResults() - will not update lastContributionId
 		it( 'Last processed ID is not updated during last batch of two with no filtered result', function() {
 			detikDataSource.config.detik.historicalLoadPeriod = 60000;
 			var results = [];
