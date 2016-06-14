@@ -17,7 +17,7 @@ This module is not designed to be run standalone but is designed to be run as a 
 [http://cognicity.info/cognicity/api-docs/cognicity-reports-detik/index.html](http://cognicity.info/cognicity/api-docs/cognicity-reports-detik/index.html)
 
 ### Dependencies
-* [NodeJS](http://nodejs.org) version 0.10.16 or compatible
+* [NodeJS](http://nodejs.org) version 4.2.1 or compatible
 
 #### Dev Modules
 * [jshint](https://github.com/jshint/node-jshint) version 2.8.0 or compatible
