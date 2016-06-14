@@ -6,6 +6,9 @@ CogniCity
 
 [![Build Status](https://travis-ci.org/smart-facility/cognicity-reports-detik.svg)](https://travis-ci.org/smart-facility/cognicity-reports-detik)
 
+DOI for current stable release [v2.0.0](https://github.com/smart-facility/cognicity-reports-detik/releases/tag/v2.0.0):
+[![DOI](https://zenodo.org/badge/19201/smart-facility/cognicity-reports-detik.svg)](https://zenodo.org/badge/latestdoi/19201/smart-facility/cognicity-reports-detik)
+
 ### About
 Cognicity-reports-detik is the NodeJS reports module for collecting relevant articles from the Detik API. For detailed framework documentation see [http://cognicity.info](http://cognicity.info).
 This module is not designed to be run standalone but is designed to be run as a submodule of [cognicity-reports](https://github.com/smart-facility/cognicity-reports), which can run just with this submodule alone.
