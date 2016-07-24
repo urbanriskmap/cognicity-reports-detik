@@ -1,7 +1,7 @@
 {
   "name": "cognicity-reports-detik",
   "description": "CogniCity reports Detik module",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "author": "Tomas Holderness <tomas@uow.edu.au>",
   "preferGlobal": false,
   "private": true,
