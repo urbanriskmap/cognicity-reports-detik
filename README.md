@@ -19,12 +19,8 @@ This module is not designed to be run standalone but is designed to be run as a 
 ### Dependencies
 * [NodeJS](http://nodejs.org) version 4.2.1 or compatible
 
-#### Dev Modules
-* [jshint](https://github.com/jshint/node-jshint) version 2.8.0 or compatible
-* [unit.js](http://unitjs.com/) version 1.0.2 or compatible
-* [mocha](http://mochajs.org/) version 2.0.1 or compatible
-* [jsdoc](https://github.com/jsdoc3/jsdoc) version 3.2.0 or compatible
-* [istanbul](https://github.com/gotwarlost/istanbul) version 0.3.5 or compatible
+#### Node Modules
+* Check package.json for details
 
 If you're going to commit changes to the JavaScript, be sure to run 'npm test' first - and fix any issues that it complains about, otherwise the build will fail when you push the commit.
 
