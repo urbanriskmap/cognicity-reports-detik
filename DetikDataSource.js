@@ -262,11 +262,14 @@ DetikDataSource.prototype = {
 		// Fix escaping slashes or report URL
 		detikReport.url = detikReport.url.replace("'\'", "");
 
+		// Add disaster type
+		detikReport.disaster_type = 'flood';
+
 		// Insert report
 		self.reports.dbQuery(
 			{
 				text: "INSERT INTO " + self.config.detik.pg.table_detik + " " +
-					"(contribution_id, created_at, text, lang, url, image_url, title, the_geom) " +
+					"(contribution_id, created_at, disaster_type, text, lang, url, image_url, title, the_geom) " +
 					"VALUES (" +
 					"$1, " +
 					"to_timestamp($2), " +
@@ -275,11 +278,13 @@ DetikDataSource.prototype = {
 					"$5, " +
 					"$6, " +
 					"$7, " +
-					"ST_GeomFromText('POINT(' || $8 || ')',4326)" +
+					"$8, " +
+					"ST_GeomFromText('POINT(' || $9 || ')',4326)" +
 					");",
 				values : [
 					detikReport.contributionId,
 					detikReport.date.create.sec,
+					detikReport.disaster_type,
 					detikReport.content,
 					detikReport.lang,
 					detikReport.url,
@@ -292,7 +297,7 @@ DetikDataSource.prototype = {
 				self.logger.info('Logged confirmed detik report');
 				self.reports.dbQuery(
 					{
-						text: "SELECT upsert_detik_users(md5($1));",
+						text: "SELECT detik.upsert_users(md5($1));",
 						values : [
 							detikReport.user.creator.id
 						]
