@@ -284,6 +284,7 @@ DetikDataSource.prototype = {
 				values : [
 					detikReport.contributionId,
 					detikReport.date.create.sec,
+					detikReport.disaster_type,
 					detikReport.content,
 					detikReport.lang,
 					detikReport.url,
