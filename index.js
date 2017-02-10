@@ -10,7 +10,7 @@
  */
 
 var DetikDataSource = require('./DetikDataSource');
-var config = require('./sample-detik-config');
+var config = require('./detik-config');
 
 /**
  * The constructor function we expose takes a reports object and returns an instance of this

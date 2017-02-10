@@ -1,4 +1,5 @@
 'use strict';
+require('dotenv').config();
 
 // sample-detik-config.js - sample configuration file for cognicity-reports-detik module
 
@@ -17,7 +18,7 @@ var config = {};
 
 // Detik web service API
 config.detik = {};
-config.detik.serviceURL = "https://example.com/latest?topic=2"; // E.g. https://example.com/latest?topic=2
+config.detik.serviceURL = process.env.DETIK_URL; // E.g. https://example.com/latest?topic=2
 config.detik.pollInterval = 1000 * 60 * 5; // E.g. 1000 * 60 * 5 = 5min
 config.detik.historicalLoadPeriod = 1000 * 60 * 60; // E.g. 1000 * 60 * 60 = 1hr
 
